@@ -1,0 +1,65 @@
+# 🚀 EKS Cluster Provisioning with Terraform (project022d)
+
+This Terraform configuration provisions a low-cost, production-grade **Amazon EKS cluster** on AWS using the latest `terraform-aws-modules/eks/aws` module (`v20.x`). It integrates with an existing VPC provisioned separately and referenced via **remote state**.
+
+---
+
+## 📦 Resources Created
+
+### 1. **EKS Cluster**
+- Creates an EKS control plane in the region specified via the provider (e.g., `eu-north-1`).
+- Enables EKS features like:
+  - IAM roles
+  - Cluster security group
+  - CloudWatch logging (optional)
+
+### 2. **EKS Managed Node Group**
+- Auto-scalable EKS-managed node group
+- Low-cost EC2 instance type (e.g., `t3.small`)
+- Placed in **public subnets** for simplicity (with `map_public_ip_on_launch = true`)
+- Uses Amazon Linux 2 AMI by default
+
+### 3. **IAM Roles and Policies**
+- EKS Cluster Role
+- EKS Node Role (with necessary permissions for worker nodes)
+- AWS-auth ConfigMap is auto-managed (optional)
+
+---
+
+## 🗃 Remote Backend
+
+- Terraform backend is configured to store the state file in:
+  - **S3 Bucket**: `noel-s3-tf-state-bucket`
+  - **Key**: `eks-cluster/terraform.tfstate`
+- Optional **DynamoDB state locking** block is included but commented out
+
+---
+
+## 🔁 Data Sources Used
+
+### 🔹 VPC (via Remote State)
+The EKS module reads the following from a separate Terraform VPC project using `terraform_remote_state`:
+- `vpc_id`
+- `public_subnets`
+- `private_subnets` (optional)
+
+Ensure your VPC outputs the correct values.
+
+---
+
+## 🧩 Add-ons (Planned)
+
+These EKS add-ons are **not installed by Terraform yet**, but can be deployed later manually via Helm or other tooling:
+
+- [ ] AWS Load Balancer Controller
+- [ ] ExternalDNS *(commented out in code)*
+- [ ] Cert-Manager *(commented out in code)*
+
+---
+
+## ⚙️ How to Use
+
+### 1. Clone the Repo and Review
+```bash
+git clone <your-repo-url>
+cd eks-cluster/
