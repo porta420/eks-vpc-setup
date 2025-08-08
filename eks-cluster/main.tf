@@ -22,6 +22,8 @@ module "eks" {
   subnet_ids      = data.terraform_remote_state.vpc.outputs.public_subnets
 
   enable_irsa = true
+  enable_cluster_creator_admin_permissions = true
+  cluster_endpoint_public_access           = true
 
   eks_managed_node_groups = {
     default = {
@@ -33,6 +35,23 @@ module "eks" {
       key_name       = var.key_name
     }
   }
+
+access_entries = {
+  # Terraform IAM user - full cluster admin rights via AWS-managed policy
+  terraform_admin = {
+    principal_arn = "arn:aws:iam::719136959080:user/terraform"
+    policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+    type          = "STANDARD"
+  }
+
+  # Bastion host IAM role - full cluster admin rights via AWS-managed policy
+  bastion_access = {
+    principal_arn = "arn:aws:iam::719136959080:role/project022d-eks-bastion-role"
+    policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+    type          = "STANDARD"
+  }
+}
+
 
   tags = {
     Environment = "dev"
