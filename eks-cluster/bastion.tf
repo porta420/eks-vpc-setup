@@ -33,7 +33,6 @@ resource "aws_iam_role_policy_attachment" "bastion_ec2_readonly" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
 }
 
-
 resource "aws_security_group" "bastion_sg" {
   name        = "${var.cluster_name}-bastion-sg"
   description = "Allow SSH access to bastion"
