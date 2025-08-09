@@ -35,7 +35,7 @@ module "eks" {
 
 access_entries = {
   ansible_role = {
-    principal_arn = "arn:aws:iam::719136959080:role/ansible"
+    principal_arn = "arn:aws:iam::719136959080:role/project022d-eks-eksadmin-role"
     policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
     type          = "STANDARD"
   }
