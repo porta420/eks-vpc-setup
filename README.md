@@ -78,3 +78,18 @@ Verify IAM role attached to bastion has necessary EKS permissions.
 Review kubeconfig to ensure correct user/role ARN is set.
 
 Confirm that network ACLs and route tables allow traffic between bastion and cluster subnets.
+
+## EKS Cluster Access Issue: Problem, Troubleshooting, and Solution
+
+### Problem  
+After provisioning the EKS cluster, attempts to access the Kubernetes API from the admin server (e.g., Terraform server or bastion host) failed with timeout and permission errors. This prevented running `kubectl` commands against the cluster.
+
+### Troubleshooting  
+The root cause was identified as missing ingress rules in the EKS control plane security group. Although the admin server was deployed inside the same VPC, its security group (often the default VPC security group) was not explicitly allowed to access the cluster’s API endpoint on port 443.
+
+### Solution  
+The issue was resolved by updating the EKS cluster security group to allow inbound HTTPS (port 443) traffic from the admin server’s security group. This secured and enabled communication between the admin server and the EKS control plane within the private VPC network. Once this rule was in place, `kubectl` commands successfully connected to and managed the cluster.
+
+---
+
+This approach avoids exposing the cluster API publicly and follows best practices for secure access within a VPC.
