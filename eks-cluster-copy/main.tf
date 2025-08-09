@@ -33,14 +33,14 @@ module "eks" {
     }
   }
 
-  access_entries = {
-    # Allow the bastion host to access the EKS cluster
-    bastion_access = {
-      principal_arn = "arn:aws:iam::719136959080:role/${var.cluster_name}-bastion-role"
-      policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-      type          = "STANDARD"
-    }
+access_entries = {
+  ansible_role = {
+    principal_arn = "arn:aws:iam::719136959080:role/ansible"
+    policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+    type          = "STANDARD"
   }
+}
+
 
   tags = {
     Environment = "dev"
@@ -48,15 +48,6 @@ module "eks" {
   }
 }
 
-resource "aws_security_group_rule" "allow_bastion_to_eks" {
-  description              = "Allow bastion SG to access EKS control plane (HTTPS)"
-  type                     = "ingress"
-  from_port                = 443
-  to_port                  = 443
-  protocol                 = "tcp"
-  security_group_id        = module.eks.cluster_security_group_id
-  source_security_group_id = aws_security_group.bastion_sg.id
-}
 
 resource "aws_security_group_rule" "allow_nodeport_access" {
   type              = "ingress"

@@ -1,14 +1,14 @@
+# ---------- Bastion Host IAM Role & Instance ----------
+
 resource "aws_iam_role" "bastion_role" {
   name = "${var.cluster_name}-bastion-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Action = "sts:AssumeRole",
-      Effect = "Allow",
-      Principal = {
-        Service = "ec2.amazonaws.com"
-      }
+      Action    = "sts:AssumeRole",
+      Effect    = "Allow",
+      Principal = { Service = "ec2.amazonaws.com" }
     }]
   })
 }
@@ -33,6 +33,14 @@ resource "aws_iam_role_policy_attachment" "bastion_ec2_readonly" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
 }
 
+# <<< Add these two for full EKS cluster admin access by bastion >>>
+
+resource "aws_iam_role_policy_attachment" "bastion_eks_cluster_policy" {
+  role       = aws_iam_role.bastion_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+}
+
+
 resource "aws_security_group" "bastion_sg" {
   name        = "${var.cluster_name}-bastion-sg"
   description = "Allow SSH access to bastion"
@@ -43,7 +51,7 @@ resource "aws_security_group" "bastion_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Replace with your IP for better security
+    cidr_blocks = ["0.0.0.0/0"]  # Replace with your IP for better security
   }
 
   egress {
