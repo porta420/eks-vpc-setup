@@ -48,18 +48,26 @@ access_entries = {
   }
 }
 
+# Allow inbound HTTPS (port 443) from the default VPC Security Group
+# This gives the Terraform/EKS admin server (in same VPC & SG) access to the EKS control plane.
+resource "aws_security_group_rule" "allow_https_from_default_sg" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = module.eks.cluster_security_group_id
+  source_security_group_id = data.terraform_remote_state.vpc.outputs.default_security_group_id
+  description              = "Allow HTTPS access from default VPC SG (EKS admin server)"
+}
 
+# Allow NodePort range access (if needed) for testing external services
+# WARNING: Currently open to all (0.0.0.0/0). Restrict in production.
 resource "aws_security_group_rule" "allow_nodeport_access" {
   type              = "ingress"
   from_port         = 30000
   to_port           = 32767
   protocol          = "tcp"
   security_group_id = module.eks.cluster_security_group_id
-  description       = "Allow NodePort range access"
-
-  # Restrict source as you want, for example from bastion SG:
-  # source_security_group_id = aws_security_group.bastion_sg.id
-
-  # Or from anywhere (not recommended):
-  cidr_blocks = ["0.0.0.0/0"]
+  cidr_blocks       = ["0.0.0.0/0"]
+  description       = "Allow NodePort range access from anywhere (testing only)"
 }
