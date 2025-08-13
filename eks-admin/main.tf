@@ -21,36 +21,17 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-resource "aws_iam_role" "eksadmin_role" {
-  name = "${var.cluster_name}-eksadmin-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = { Service = "ec2.amazonaws.com" }
-      Action    = "sts:AssumeRole"
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "eksadmin_admin" {
-  role       = aws_iam_role.eksadmin_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
-}
-
-resource "aws_iam_instance_profile" "eksadmin_profile" {
-  name = "${var.cluster_name}-eksadmin-instance-profile"
-  role = aws_iam_role.eksadmin_role.name
+data "aws_iam_instance_profile" "eksadmin_profile" {
+  name = "ansible"
 }
 
 resource "aws_instance" "eksadmin" {
   ami                         = data.aws_ami.ubuntu.id
-  instance_type               = "t3.micro"
+  instance_type               = "t3.small"
   subnet_id                   = element(data.terraform_remote_state.vpc.outputs.public_subnets, 0)
   vpc_security_group_ids      = [data.terraform_remote_state.vpc.outputs.default_security_group_id]
   key_name                   = var.key_name
-  iam_instance_profile        = aws_iam_instance_profile.eksadmin_profile.name
+  iam_instance_profile        = data.aws_iam_instance_profile.eksadmin_profile.name
   associate_public_ip_address = true
 
   user_data = file("${path.module}/eksadmin_userdata.sh")
