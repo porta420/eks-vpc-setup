@@ -1,0 +1,15 @@
+#Fixing Git Large File Push Error in VS Code / Git Bash
+git filter-branch --force --index-filter \
+"git rm --cached --ignore-unmatch eks-admin/.terraform/providers/registry.terraform.io/hashicorp/aws/6.8.0/windows_amd64/terraform-provider-aws_v6.8.0_x5.exe" \
+--prune-empty --tag-name-filter cat -- --all
+# step two 
+rm -rf .git/refs/original
+git reflog expire --expire=now --all
+git gc --prune=now --aggressive
+# step three
+echo ".terraform/" >> .gitignore
+git add .gitignore
+git commit -m "Ignore Terraform cache folder"
+# step four
+git push origin --force --all
+git push origin --force --tags
