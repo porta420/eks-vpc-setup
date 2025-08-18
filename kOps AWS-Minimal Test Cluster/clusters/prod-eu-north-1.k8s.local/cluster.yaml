@@ -1,0 +1,52 @@
+apiVersion: kops.k8s.io/v1alpha2
+kind: Cluster
+metadata:
+  name: prod-eu-north-1.k8s.local
+spec:
+  cloudProvider: aws
+  kubernetesVersion: 1.31.4
+  region: eu-north-1
+
+  # SIMPLIFIED: public topology (no NAT/bastion/utility subnets)
+  topology:
+    masters: public
+    nodes: public
+    dns:
+      type: Public
+  api:
+    loadBalancer:
+      type: Public
+      class: Network
+
+  networking:
+    cilium: {}
+
+  authorization:
+    rbac: {}
+
+  iam:
+    legacy: false
+
+  etcdClusters:
+    - name: main
+      version: 3.5.17
+      members:
+        - instanceGroup: master-eu-north-1a
+    - name: events
+      version: 3.5.17
+      members:
+        - instanceGroup: master-eu-north-1a
+
+  # Single AZ for lowest cost test
+  subnets:
+    - name: eu-north-1a
+      type: Public
+      zone: eu-north-1a
+
+  sshAccess:
+    - 0.0.0.0/0   # tighten for real use
+  apiAccess:
+    - 0.0.0.0/0   # tighten for real use
+
+  additionalTags:
+    environment: test

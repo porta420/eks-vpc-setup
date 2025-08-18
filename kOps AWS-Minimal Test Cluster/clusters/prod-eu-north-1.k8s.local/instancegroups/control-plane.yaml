@@ -1,0 +1,15 @@
+apiVersion: kops.k8s.io/v1alpha2
+kind: InstanceGroup
+metadata:
+  name: master-eu-north-1a
+spec:
+  role: Master
+  subnets:
+    - eu-north-1a
+  machineType: t3.medium
+  minSize: 1
+  maxSize: 1
+  rootVolume:
+    size: 32
+    type: gp3
+  image: ubuntu-24.04
