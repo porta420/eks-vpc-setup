@@ -1,0 +1,94 @@
+# KOps EKS Cluster Setup and Team Authentication
+
+This README provides step-by-step instructions to create a Kubernetes cluster on AWS using kOps and to configure authentication for multiple team members using IAM and certificate-based kubeconfig.
+
+---
+
+## Prerequisites
+
+- AWS CLI configured with proper credentials
+- kOps installed (`v1.32.0` recommended)
+- kubectl installed
+- SSH key pair available (`~/.ssh/id_rsa.pub`)
+
+---
+
+## 1. Set Environment Variables
+
+bash
+# Cluster name
+export NAME=prod-eu-north-1.k8s.local
+
+# AWS region
+export AWS_REGION=eu-north-1
+
+# S3 bucket for state store (must exist)
+export KOPS_STATE_STORE=s3://my-kops-state-store
+
+
+Create the Cluster
+
+kops create cluster \
+  --name=${NAME} \
+  --cloud=aws \
+  --zones=${AWS_REGION}a \
+  --control-plane-size=t3.small \
+  --node-size=t3.small \
+  --node-count=2 \
+  --control-plane-count=1 \
+  --networking=cilium \
+  --topology=public \
+  --ssh-public-key=~/.ssh/id_rsa.pub
+
+
+# Validate cluster spec
+kops validate cluster --name=${NAME} --state=${KOPS_STATE_STORE}
+
+# Apply the cluster
+kops update cluster --name=${NAME} --yes
+
+# Export admin kubeconfig
+kops export kubecfg --name=${NAME} --state=${KOPS_STATE_STORE}
+
+# IAM-Based Authentication for Team Members
+
+kops edit cluster --name=${NAME}
+
+# Under spec.kubernetesApiAccess, add IAM ARNs:
+spec:
+  kubernetesApiAccess:
+    - 203.0.113.25/32   # Optional CIDR
+----
+# aws-auth ConfigMap in kube-system namespace
+mapUsers: |
+  - userarn: arn:aws:iam::ACCOUNT_ID:user/alice
+    username: alice
+    groups:
+      - system:masters
+  - userarn: arn:aws:iam::ACCOUNT_ID:user/bob
+    username: bob
+    groups:
+      - system:masters
+----
+kubectl apply -f aws-auth-cm.yaml
+
+#Team members can authenticate via AWS credentials
+aws eks get-token --cluster-name ${NAME}
+kubectl get nodes
+
+# Certificate-Based Authentication
+Create a user certificate for a team member
+kops create secret --name ${NAME} --user bob --groups system:masters
+kops update cluster --name ${NAME} --yes
+
+----
+
+kops export kubecfg --name ${NAME} --state=${KOPS_STATE_STORE} --admin
+# Or distribute the generated kubeconfig from ~/.kube/config
+
+kubectl get pods --all-namespaces
+
+# RBAC and Roles
+kubectl create rolebinding dev-binding \
+  --clusterrole=view \
+  --user=bob
