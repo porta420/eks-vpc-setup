@@ -1,0 +1,14 @@
+apiVersion: kops.k8s.io/v1alpha2
+kind: InstanceGroup
+metadata:
+  name: nodes
+  labels:
+    kops.k8s.io/cluster: prod-eu-north-1.k8s.local   
+  role: Node
+  subnets:
+    - eu-north-1a
+  machineType: t3.small
+  minSize: 1
+  maxSize: 2
+  rootVolumeSize: 20
+  image: ubuntu-24.04

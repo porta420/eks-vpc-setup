@@ -1,0 +1,14 @@
+apiVersion: kops.k8s.io/v1beta2
+kind: InstanceGroup
+metadata:
+  name: master-eu-north-1a
+  labels:
+    kops.k8s.io/cluster: prod-eu-north-1.k8s.local
+spec:
+  role: Master
+  image: ami-0c94855ba95c71c99  # Amazon Linux 2 (update as needed)
+  machineType: t3.medium
+  minSize: 1
+  maxSize: 1
+  subnets:
+    - eu-north-1a

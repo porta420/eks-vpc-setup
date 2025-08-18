@@ -1,0 +1,12 @@
+# Set environment variables for kOps
+export KOPS_STATE_STORE=s3://my-kops-state-bucket
+export AWS_PROFILE=default  # if needed
+
+# Step 1: Create resources
+make create
+
+# Step 2: Update cluster
+make update
+
+# Step 3: Validate
+make validate
