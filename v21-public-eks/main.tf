@@ -5,8 +5,6 @@ terraform {
     bucket = "noel-s3-tf-state-bucket"
     key    = "eks-public/terraform.tfstate"
     region = "eu-north-1"
-    # dynamodb_table = "YOUR-LOCK-TABLE"
-    # encrypt        = true
   }
 }
 
@@ -14,84 +12,71 @@ provider "aws" {
   region = var.region
 }
 
-# --- NOT NEEDED if using default VPC ---
-# data "terraform_remote_state" "vpc" {
-#   backend = "s3"
-#   config = {
-#     bucket = var.vpc_remote_state_bucket
-#     key    = var.vpc_remote_state_key
-#     region = var.region
-#   }
-# }
-
-# --- Node IAM role (standard policies) ---
-resource "aws_iam_role" "eks_node_role" {
-  name = "${var.cluster_name}-node-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Principal = { Service = "ec2.amazonaws.com" },
-      Action = "sts:AssumeRole"
-    }]
-  })
+# Read VPC state (public subnets only)
+data "terraform_remote_state" "vpc" {
+  backend = "s3"
+  config = {
+    bucket = var.vpc_remote_state_bucket
+    key    = var.vpc_remote_state_key
+    region = var.region
+  }
 }
 
-resource "aws_iam_role_policy_attachment" "worker_node_AmazonEKSWorkerNodePolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.eks_node_role.name
-}
-resource "aws_iam_role_policy_attachment" "worker_node_AmazonEKS_CNI_Policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.eks_node_role.name
-}
-resource "aws_iam_role_policy_attachment" "worker_node_AmazonEC2ContainerRegistryReadOnly" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.eks_node_role.name
-}
-
-# --- EKS module (v21) with PUBLIC endpoint & PUBLIC subnets ---
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "21.0.5"
+  version = "~> 21.0"
 
   name               = var.cluster_name
   kubernetes_version = "1.29"
 
-  # Replace with your default VPC ID
-  vpc_id = "vpc-03e42aeeeb4fbe0ae" 
+  # Core EKS addons 
+  addons = {
+    coredns                = {}
+    kube-proxy             = {}
+    vpc-cni                = { before_compute = true }
+    eks-pod-identity-agent = { before_compute = true }
+  }
 
-  # Replace with your actual subnet IDs (public & private as needed)
-  subnet_ids = [
-    "subnet-0dfbbcaa92b384a3e", # public subnet 1
-    "subnet-0522d7328c1c14214", # public subnet 2
-  ]
-
-  enable_irsa                             = true
-  enable_cluster_creator_admin_permissions = true
-
-  endpoint_private_access = false
+  # Public access only (no NAT → use public subnets)
   endpoint_public_access  = true
+  endpoint_private_access = false
+  endpoint_public_access_cidrs = ["10.50.0.0/16","64.246.65.126"]
 
-  eks_managed_node_groups = {
-    default = {
-      desired_size   = 2
-      min_size       = 1
-      max_size       = 3
-      instance_types = ["t3.small"]
-      capacity_type  = "ON_DEMAND"
-      key_name       = var.key_name
+  vpc_id     = data.terraform_remote_state.vpc.outputs.vpc_id
+  subnet_ids = data.terraform_remote_state.vpc.outputs.public_subnets
+  
+  access_entries = {
+    # One access entry with a policy associated
+    admin = {
+      principal_arn = "arn:aws:iam::719136959080:role/kubernetes"
 
-      iam_role_arn = aws_iam_role.eks_node_role.arn
-
-      # ✅ Nodes will use the same subnets you define above
-      subnets = [
-        "subnet-0dfbbcaa92b384a3e", # public subnet 1
-        "subnet-0522d7328c1c14214", # public subnet 2
-      ]
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"
+          access_scope = {
+            namespaces = ["default"]
+            type       = "namespace"
+          }
+        }
+      }
     }
   }
+
+  # Node group
+  eks_managed_node_groups = {
+    default = {
+      ami_type       = "AL2023_x86_64_STANDARD"
+      instance_types = ["t3.small"]
+
+      min_size     = 2
+      max_size     = 4
+      desired_size = 2
+
+      capacity_type = "ON_DEMAND"
+    }
+  }
+
+  enable_cluster_creator_admin_permissions = true
 
   tags = {
     Environment = "dev"
@@ -99,7 +84,7 @@ module "eks" {
   }
 }
 
-# Optional: open NodePort range (testing)
+# (Optional) Security group rule to allow NodePort access (testing only)
 resource "aws_security_group_rule" "allow_nodeport_access" {
   type              = "ingress"
   from_port         = 30000
@@ -107,5 +92,5 @@ resource "aws_security_group_rule" "allow_nodeport_access" {
   protocol          = "tcp"
   security_group_id = module.eks.node_security_group_id
   cidr_blocks       = ["0.0.0.0/0"]
-  description       = "Allow NodePort range access from anywhere (testing only)"
+  description       = "Allow NodePort access from anywhere"
 }

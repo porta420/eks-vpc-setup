@@ -1,23 +1,25 @@
 variable "region" {
-  default = "eu-north-1"
-}
-
-variable "cluster_name" {
-  default = "project022d-eks-v21"
+  description = "AWS region"
+  default     = "eu-north-1"
 }
 
 variable "project_name" {
-  default = "project022d"
+  description = "Project name"
+  default     = "project022d"
 }
 
-variable "key_name" {
-  default = "ansible"
+variable "cluster_name" {
+  description = "EKS Cluster name"
+  default     = "project022d-eks-v21"
 }
 
-# Remote state for VPC
 variable "vpc_remote_state_bucket" {
-  default = "noel-s3-tf-state-bucket"
+  description = "S3 bucket name for VPC state"
+  default     = "noel-s3-tf-state-bucket"
 }
+
 variable "vpc_remote_state_key" {
-  default = "vpc-public/terraform.tfstate"
+  description = "Path to VPC state file in S3"
+  default     = "vpc/terraform.tfstate"
 }
+
