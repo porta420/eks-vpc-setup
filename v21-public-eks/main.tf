@@ -40,7 +40,7 @@ module "eks" {
   # Public access only (no NAT → use public subnets)
   endpoint_public_access  = true
   endpoint_private_access = false
-  endpoint_public_access_cidrs = ["10.50.0.0/16","64.246.65.126"]
+  endpoint_public_access_cidrs = ["64.246.65.126/32"] # Example CIDR, replace with your own
 
   vpc_id     = data.terraform_remote_state.vpc.outputs.vpc_id
   subnet_ids = data.terraform_remote_state.vpc.outputs.public_subnets
