@@ -13,3 +13,7 @@ output "private_subnets" {
 output "default_security_group_id" {
   value = module.vpc.default_security_group_id
 }
+output "bastion_sg_id" {
+  value       = aws_security_group.bastion_sg.id
+  description = "Security group ID for bastion/admin access"
+}

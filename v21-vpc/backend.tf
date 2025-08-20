@@ -6,7 +6,7 @@
 terraform {
   backend "s3" {
     bucket         = "noel-s3-tf-state-bucket"
-    key            = "eks-vpc/terraform.tfstate"
+    key            = "vpc/terraform.tfstate"
     region         = "eu-north-1"
    # dynamodb_table = "<OPTIONAL_LOCK_TABLE_NAME>" # create a DynamoDB table with PK "LockID"
     #encrypt        = true

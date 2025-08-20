@@ -39,7 +39,7 @@ module "eks" {
 
   # Public access only (no NAT → use public subnets)
   endpoint_public_access  = true
-  endpoint_private_access = false
+  endpoint_private_access = true
   endpoint_public_access_cidrs = ["64.246.65.126/32"] # Example CIDR, replace with your own
 
   vpc_id     = data.terraform_remote_state.vpc.outputs.vpc_id
@@ -93,4 +93,26 @@ resource "aws_security_group_rule" "allow_nodeport_access" {
   security_group_id = module.eks.node_security_group_id
   cidr_blocks       = ["0.0.0.0/0"]
   description       = "Allow NodePort access from anywhere"
+}
+
+# Allow bastion SG to talk to EKS nodes
+resource "aws_security_group_rule" "allow_bastion_to_nodes" {
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 65535
+  protocol                 = "tcp"
+  source_security_group_id = data.terraform_remote_state.vpc.outputs.bastion_sg_id
+  security_group_id        = module.eks.node_security_group_id
+  description              = "Allow bastion SG access to worker nodes"
+}
+
+# Allow bastion SG to reach cluster API (if using public/private endpoint)
+resource "aws_security_group_rule" "allow_bastion_to_cluster" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  source_security_group_id = data.terraform_remote_state.vpc.outputs.bastion_sg_id
+  security_group_id        = module.eks.cluster_security_group_id
+  description              = "Allow bastion SG access to EKS control plane"
 }
