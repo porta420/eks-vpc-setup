@@ -1,0 +1,11 @@
+# install nginx ingress controller with servivce type load balancer
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+---
+helm install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx --create-namespace \
+  -f ingress-nginx-values.yaml
+---
+# check the installation
+kubectl get all -n ingress-nginx
+kubectl get svc -n ingress-nginx

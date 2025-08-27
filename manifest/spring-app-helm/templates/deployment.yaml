@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-spring-app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: spring-app
+  template:
+    metadata:
+      labels:
+        app: spring-app
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecret }}
+      containers:
+        - name: spring-app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+          env:
+            - name: MONGO_DB_HOSTNAME
+              value: mongodb-service
+            - name: MONGO_DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: username
+            - name: MONGO_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: password
+          resources:
+            requests:
+              memory: "250Mi"
+              cpu: "256m"
+            limits:
+              memory: "510Mi"
+              cpu: "550m"

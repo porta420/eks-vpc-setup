@@ -1,0 +1,24 @@
+replicaCount: 2
+
+image:
+  repository: noeldevops/spring-app
+  tag: "5"
+  pullPolicy: IfNotPresent
+  pullSecret: my-secret
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  host: spring.mydomain.com
+  path: /
+
+mongodb:
+  username: admin
+  password: password123
+  database: springdb
+  storage: 1Gi
