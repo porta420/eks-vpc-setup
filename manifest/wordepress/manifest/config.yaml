@@ -1,0 +1,9 @@
+# wordpress-db-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wordpress-db-config
+data:
+  db-host: "<your-rds-endpoint>"   # replace with RDS endpoint, e.g. mydb.cle4xyz.eu-north-1.rds.amazonaws.com
+  db-user: "admin"                 # must match your RDS username
+  db-name: "wordpress"             # make sure the DB exists in RDS (create with Terraform or manually)

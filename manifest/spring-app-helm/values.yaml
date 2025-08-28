@@ -21,4 +21,4 @@ mongodb:
   username: admin
   password: password123
   database: springdb
-  storage: 1Gi
+  storage: 10Gi
