@@ -30,11 +30,26 @@ module "eks" {
   kubernetes_version = "1.29"
 
   # Core EKS addons 
+  # Core EKS + EBS CSI driver addons
   addons = {
-    coredns                = {}
-    kube-proxy             = {}
-    vpc-cni                = { before_compute = true }
-    eks-pod-identity-agent = { before_compute = true }
+    coredns = {
+      most_recent = true
+    }
+    kube-proxy = {
+      most_recent = true
+    }
+    vpc-cni = {
+      most_recent   = true
+      before_compute = true
+    }
+    eks-pod-identity-agent = {
+      most_recent   = true
+      before_compute = true
+    }
+    aws-ebs-csi-driver = {
+      most_recent              = true
+      service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
+    }
   }
 
   # Public access only (no NAT → use public subnets)
@@ -115,4 +130,33 @@ resource "aws_security_group_rule" "allow_bastion_to_cluster" {
   source_security_group_id = data.terraform_remote_state.vpc.outputs.bastion_sg_id
   security_group_id        = module.eks.cluster_security_group_id
   description              = "Allow bastion SG access to EKS control plane"
+}
+
+# IAM Role for EBS CSI Driver
+resource "aws_iam_role" "ebs_csi_driver" {
+  name = "${var.cluster_name}-ebs-csi-driver-role"
+
+  assume_role_policy = data.aws_iam_policy_document.ebs_csi_assume_role.json
+}
+
+data "aws_iam_policy_document" "ebs_csi_assume_role" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [module.eks.oidc_provider_arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_provider, "https://", "")}:sub"
+      values   = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "ebs_csi_driver" {
+  role       = aws_iam_role.ebs_csi_driver.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
