@@ -1,4 +1,5 @@
 replicaCount: 2
+namespace: dev # Namespace where resources will be deployed
 
 image:
   repository: noeldevops/spring-app
