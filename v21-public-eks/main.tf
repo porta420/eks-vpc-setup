@@ -52,6 +52,31 @@ module "eks" {
     }
   }
 
+  # ---------------------------------------
+# EKS Control Plane Logging (Commented)
+# ---------------------------------------
+# Enable control plane logging for audit, API, and other components
+# cluster_enabled_log_types = [
+#   "api",
+#   "audit",
+#   "authenticator",
+#   "controllerManager",
+#   "scheduler"
+# ]
+
+# Optional: CloudWatch log group with retention
+# resource "aws_cloudwatch_log_group" "eks_control_plane" {
+#   name              = "/aws/eks/${module.eks.cluster_name}/cluster"
+#   retention_in_days = 30  # adjust as needed (e.g., 7, 30, 90)
+# }
+
+# Optional: Attach IAM policy to cluster role if custom IAM is used
+# resource "aws_iam_role_policy_attachment" "eks_logging" {
+#   role       = module.eks.cluster_iam_role_name
+#   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+# }
+
+
   # Public access only (no NAT → use public subnets)
   endpoint_public_access  = true
   endpoint_private_access = true
