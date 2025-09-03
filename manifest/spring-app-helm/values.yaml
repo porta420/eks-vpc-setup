@@ -23,3 +23,20 @@ mongodb:
   password: password123
   database: springdb
   storage: 10Gi
+
+awsSecrets:
+  enabled: true
+  secretName: mongodb-credentials   # AWS Secrets Manager secret name
+  k8sSecretName: db-secret          # K8s secret name synced from AWS
+  serviceAccounts:
+    springApp:
+      name: spring-app-sa
+      annotations: {}
+      # Example for EKS IRSA:
+      # annotations:
+      #   eks.amazonaws.com/role-arn: arn:aws:iam::<account-id>:role/MySecretsRole
+    mongodb:
+      name: mongodb-sa
+      annotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::719136959080:policy/EKSSecretsManagerPolicy
+  providerClassName: aws-secrets-mongodb

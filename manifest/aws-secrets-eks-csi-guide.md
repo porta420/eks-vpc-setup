@@ -37,6 +37,11 @@ Also ensure:
 # 1. Create a Secret in AWS Secrets Manager
 
 ```bash
+
+aws secretsmanager create-secret \
+  --name my-app-secret \
+  --secret-string '{"username":"admin","password":"SuperSecretPass"}'
+
 aws secretsmanager create-secret   --name my-db-secret   --description "Database credentials for my EKS app"   --secret-string '{"username":"admin","password":"SuperSecurePass123"}'
 ```
 
@@ -98,12 +103,29 @@ aws iam create-policy   --policy-name EKSSecretsManagerPolicy   --policy-documen
 ```bash
 eksctl create iamserviceaccount   --cluster <CLUSTER_NAME>   --namespace default   --name secrets-sa   --attach-policy-arn arn:aws:iam::<ACCOUNT_ID>:policy/EKSSecretsManagerPolicy   --approve
 ```
+eksctl create iamserviceaccount \
+  --region us-west-2 \
+  --cluster project022d-eks-v21 \
+  --namespace default \
+  --name spring-app-sa \
+  --attach-policy-arn arn:aws:iam::719136959080:policy/EKSSecretsManagerPolicy \
+  --approve
+
+---
+eksctl create iamserviceaccount \
+  --region eu-north-1 \
+  --cluster project022d-eks-v21 \
+  --namespace default \
+  --name mongodb-sa \
+  --attach-policy-arn arn:aws:iam::719136959080:policy/EKSSecretsManagerPolicy \
+  --approve
 
 ---
 
 ## 🔹 6. Create SecretProviderClass
 
 `secretproviderclass.yaml`:
+
 
 ```yaml
 apiVersion: secrets-store.csi.x-k8s.io/v1

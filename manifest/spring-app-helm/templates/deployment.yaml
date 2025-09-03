@@ -12,11 +12,19 @@ spec:
       labels:
         app: spring-app
     spec:
+      serviceAccountName: {{ .Values.awsSecrets.serviceAccounts.springApp.name }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
       imagePullSecrets:
         - name: {{ .Values.image.pullSecret }}
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ .Values.awsSecrets.providerClassName }}
       containers:
         - name: spring-app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -27,13 +35,13 @@ spec:
               value: mongodb-service
             - name: MONGO_DB_USERNAME
               valueFrom:
-                configMapKeyRef:
-                  name: db-config
+                secretKeyRef:
+                  name: {{ .Values.awsSecrets.k8sSecretName }}
                   key: username
             - name: MONGO_DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: db-secret
+                  name: {{ .Values.awsSecrets.k8sSecretName }}
                   key: password
           resources:
             requests:
@@ -42,3 +50,7 @@ spec:
             limits:
               memory: "510Mi"
               cpu: "550m"
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
