@@ -103,25 +103,30 @@ module "eks" {
   }
 
   # Node group
-  eks_managed_node_groups = {
-    default = {
-      ami_type       = "AL2023_x86_64_STANDARD"
-      instance_types = ["t3.small"]
+eks_managed_node_groups = {
+  default = {
+    ami_type       = "AL2023_x86_64_STANDARD"
+    instance_types = ["t3.small"]
 
-      min_size     = 2
-      max_size     = 4
-      desired_size = 2
+    min_size     = 2
+    max_size     = 4
+    desired_size = 2
 
-      capacity_type = "ON_DEMAND"
+    capacity_type = "ON_DEMAND"
+
+   cluster_tags = {
+      "k8s.io/cluster-autoscaler/enabled"                  = "true"
+      "k8s.io/cluster-autoscaler/${var.cluster_name}"      = "owned"
     }
   }
+}
 
-  enable_cluster_creator_admin_permissions = true
+enable_cluster_creator_admin_permissions = true
 
-  tags = {
-    Environment = "dev"
-    Project     = var.project_name
-  }
+tags = {
+  Environment = "dev"
+  Project     = var.project_name
+}
 }
 
 # (Optional) Security group rule to allow NodePort access (testing only)
