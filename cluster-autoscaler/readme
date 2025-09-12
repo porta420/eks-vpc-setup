@@ -1,0 +1,70 @@
+# Cluster Autoscaler on Amazon EKS
+
+This guide sets up the **Kubernetes Cluster Autoscaler (CA)** on an Amazon EKS cluster using Terraform, eksctl, and Helm. The instructions below include **IAM policy creation, IRSA, Helm deployment, and testing scaling** — all in one continuous workflow.
+
+---
+
+## Prerequisites
+- Existing EKS cluster (e.g., provisioned with [terraform-aws-eks](https://github.com/terraform-aws-modules/terraform-aws-eks))
+- kubectl installed and configured
+- Helm 3 installed
+- eksctl installed
+- AWS CLI configured for the correct region
+
+
+# Required tags for Cluster Autoscaler auto-discovery
+    tags = {
+      "k8s.io/cluster-autoscaler/enabled"             = "true"
+      "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
+
+---
+
+## Complete Setup Instructions
+
+1. **Create IAM Policy for Cluster Autoscaler**
+
+Create a file named `cluster-autoscaler-policy.json` with:
+
+---
+aws iam create-policy \
+  --policy-name AmazonEKSClusterAutoscalerPolicy \
+  --policy-document file://cluster-autoscaler-policy.json
+
+2. Create IAM Role and ServiceAccount with eksctl
+
+eksctl create iamserviceaccount \
+  --cluster <cluster-name> \
+  --region <region> \
+  --namespace kube-system \
+  --name cluster-autoscaler \
+  --attach-policy-arn arn:aws:iam::<account-id>:policy/AmazonEKSClusterAutoscalerPolicy \
+  --override-existing-serviceaccounts \
+  --approve
+
+
+3. Deploy Cluster Autoscaler via Helm
+
+helm repo add autoscaler https://kubernetes.github.io/autoscaler
+helm repo update
+
+helm upgrade --install cluster-autoscaler autoscaler/cluster-autoscaler \
+  --namespace kube-system \
+  --set autoDiscovery.clusterName=<cluster-name> \
+  --set awsRegion=<region> \
+  --set rbac.serviceAccount.create=false \
+  --set rbac.serviceAccount.name=cluster-autoscaler
+
+
+4. Verify the Cluster Autoscaler pod
+
+kubectl -n kube-system get pods -l app.kubernetes.io/name=aws-cluster-autoscaler
+kubectl -n kube-system logs deployment/cluster-autoscaler --tail 50
+
+5. Test scaling up
+
+kubectl apply -f busybox-test.yaml
+kubectl get pods -l app=busybox
+
+6. Test scaling down
+
+kubectl delete deployment busybox-test

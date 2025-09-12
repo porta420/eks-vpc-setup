@@ -52,6 +52,31 @@ module "eks" {
     }
   }
 
+  # ---------------------------------------
+# EKS Control Plane Logging (Commented)
+# ---------------------------------------
+# Enable control plane logging for audit, API, and other components
+# cluster_enabled_log_types = [
+#   "api",
+#   "audit",
+#   "authenticator",
+#   "controllerManager",
+#   "scheduler"
+# ]
+
+# Optional: CloudWatch log group with retention
+# resource "aws_cloudwatch_log_group" "eks_control_plane" {
+#   name              = "/aws/eks/${module.eks.cluster_name}/cluster"
+#   retention_in_days = 30  # adjust as needed (e.g., 7, 30, 90)
+# }
+
+# Optional: Attach IAM policy to cluster role if custom IAM is used
+# resource "aws_iam_role_policy_attachment" "eks_logging" {
+#   role       = module.eks.cluster_iam_role_name
+#   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+# }
+
+
   # Public access only (no NAT → use public subnets)
   endpoint_public_access  = true
   endpoint_private_access = true
@@ -78,25 +103,30 @@ module "eks" {
   }
 
   # Node group
-  eks_managed_node_groups = {
-    default = {
-      ami_type       = "AL2023_x86_64_STANDARD"
-      instance_types = ["t3.small"]
+eks_managed_node_groups = {
+  default = {
+    ami_type       = "AL2023_x86_64_STANDARD"
+    instance_types = ["t3.small"]
 
-      min_size     = 2
-      max_size     = 4
-      desired_size = 2
+    min_size     = 2
+    max_size     = 4
+    desired_size = 2
 
-      capacity_type = "ON_DEMAND"
+    capacity_type = "ON_DEMAND"
+
+   cluster_tags = {
+      "k8s.io/cluster-autoscaler/enabled"                  = "true"
+      "k8s.io/cluster-autoscaler/${var.cluster_name}"      = "owned"
     }
   }
+}
 
-  enable_cluster_creator_admin_permissions = true
+enable_cluster_creator_admin_permissions = true
 
-  tags = {
-    Environment = "dev"
-    Project     = var.project_name
-  }
+tags = {
+  Environment = "dev"
+  Project     = var.project_name
+}
 }
 
 # (Optional) Security group rule to allow NodePort access (testing only)

@@ -16,6 +16,9 @@ data "aws_ami" "ubuntu" {
     values = ["hvm"]
   }
 }
+data "aws_iam_instance_profile" "ansible" {
+  name = "ansible"
+}
 
 resource "aws_instance" "bastion" {
   ami           = data.aws_ami.ubuntu.id
@@ -27,7 +30,8 @@ resource "aws_instance" "bastion" {
 
   associate_public_ip_address = true
   key_name                    = var.key_name
-  user_data = file("${path.module}/bastion-userdata.sh")
+  user_data_base64 = filebase64("${path.module}/bastion-userdata.sh")
+  iam_instance_profile = data.aws_iam_instance_profile.ansible.name
 
   tags = {
     Name    = "${var.project_name}-bastion"

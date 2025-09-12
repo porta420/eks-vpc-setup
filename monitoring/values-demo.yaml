@@ -1,0 +1,30 @@
+# values-demo.yaml
+# Minimal setup for EKS demo (low cost, no persistence/Ingress).
+
+grafana:
+  enabled: true
+  adminPassword: admin # ⚠️ Demo only. Use a Secret in production.
+  service:
+    type: ClusterIP
+    port: 80
+
+prometheus:
+  prometheusSpec:
+    retention: 7d # lower retention to save resources
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+alertmanager:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true
