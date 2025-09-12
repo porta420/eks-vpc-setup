@@ -23,3 +23,14 @@ variable "vpc_remote_state_key" {
   default     = "vpc/terraform.tfstate"
 }
 
+variable "velero_backup_bucket" {
+  description = "S3 bucket name where Velero stores backups"
+  type        = string
+  default     = "noel-s3-tf-state-bucket" # change if needed
+}
+
+variable "velero_region" {
+  description = "AWS region for Velero backup storage"
+  type        = string
+  default     = "eu-north-1"
+}

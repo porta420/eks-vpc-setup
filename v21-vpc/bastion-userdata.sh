@@ -37,4 +37,10 @@ terraform version >> /tmp/userdata.log 2>&1
 helm version >> /tmp/userdata.log 2>&1
 eksctl version >> /tmp/userdata.log 2>&1
 
-echo "Bastion setup complete!" >> /tmp/userdata.log
+echo "Bastion setup complete!" >> /tmp/userdata.log 
+# Install Velero CLI
+VELERO_VERSION="v1.13.0"
+curl -L https://github.com/vmware-tanzu/velero/releases/download/${VELERO_VERSION}/velero-${VELERO_VERSION}-linux-amd64.tar.gz -o /tmp/velero.tar.gz
+tar -xvf /tmp/velero.tar.gz -C /tmp
+mv /tmp/velero-${VELERO_VERSION}-linux-amd64/velero /usr/local/bin/
+velero version --client
