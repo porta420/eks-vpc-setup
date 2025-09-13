@@ -1,4 +1,25 @@
+
 # velero-iam.tf
+
+# (Optional) Dedicated Velero S3 bucket
+# Commented out for now, uncomment in production
+# resource "aws_s3_bucket" "velero" {
+#   bucket = var.velero_backup_bucket
+#   acl    = "private"
+#
+#   tags = {
+#     Name        = "${var.cluster_name}-velero-backups"
+#     Environment = var.environment
+#   }
+# }
+#
+# resource "aws_s3_bucket_versioning" "velero" {
+#   bucket = aws_s3_bucket.velero.id
+#
+#   versioning_configuration {
+#     status = "Enabled"
+#   }
+# }
 
 # IAM Role for Velero ServiceAccount
 resource "aws_iam_role" "velero" {

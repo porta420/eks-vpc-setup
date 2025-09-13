@@ -1,0 +1,28 @@
+# values-velero.yaml
+
+configuration:
+  backupStorageLocation:
+    - name: default
+      provider: aws
+      bucket: noel-s3-tf-state-bucket
+      config:
+        region: eu-north-1
+  volumeSnapshotLocation:
+    - name: default
+      provider: aws
+      config:
+        region: eu-north-1
+
+serviceAccount:
+  server:
+    create: true
+    name: velero
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::719136959080:role/project022d-eks-v21-velero-role
+
+initContainers:
+  - name: velero-plugin-for-aws
+    image: velero/velero-plugin-for-aws:v1.8.0
+    volumeMounts:
+      - mountPath: /target
+        name: plugins

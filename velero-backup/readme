@@ -1,0 +1,161 @@
+# Velero Backup and Restore for EKS Clusters
+
+This guide documents a **complete setup of Velero-based backup and restore** for an EKS cluster, including **PersistentVolume (EBS) support**, S3 integration, and disaster recovery considerations.  
+All necessary commands and notes are included. The **Velero Helm values file (`values-velero.yaml`)** is separate but referenced.
+
+---
+
+## 1. Prerequisites
+
+# NOTE: Ensure these tools are installed and configured before starting
+- AWS CLI configured with access to the account and region
+- Terraform code to provision EKS cluster (already working)
+- Helm v3+
+- kubectl configured to access the EKS cluster
+- Optional: Existing S3 bucket for Velero backups (e.g., `noel-s3-tf-state-bucket`) or create a dedicated bucket
+
+---
+
+## 2. IAM Role for Velero
+
+# NOTE: Velero needs a Kubernetes service account with an associated IAM role
+# This IAM role must have permissions to access S3 (backup bucket) and EC2 volumes/snapshots if using PV backups
+# Typically, this is provisioned in Terraform (`velero-iam.tf`) with:
+# - AssumeRoleWithWebIdentity for the Velero service account
+# - S3 bucket access: ListBucket, GetObject, PutObject, DeleteObject
+# - EC2 volume access: DescribeVolumes, DescribeSnapshots, CreateTags, CreateVolume, CreateSnapshot, DeleteSnapshot
+
+# The IAM role ARN is later referenced in `values-velero.yaml` via IRSA annotations
+
+---
+
+## 3. Kubernetes StorageClass for EBS
+
+# Create a StorageClass for dynamic provisioning of EBS volumes
+# PVCs will reference this StorageClass
+kubectl apply -f - <<EOF
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp2-ebs
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2          # Or gp3
+  fsType: ext4
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+EOF
+
+# NOTE: reclaimPolicy Delete will remove underlying EBS when PVC is deleted
+# To preserve PV data during testing or production, enable volume snapshots in Velero
+
+---
+
+## 4. Install Velero with Helm
+
+# 1. Create Velero namespace
+kubectl create namespace velero
+
+# 2. Prepare Helm values file (`values-velero.yaml`)
+# NOTE: The values file includes configuration for:
+# - BackupStorageLocation (bucket, prefix, region)
+# - Optional volumeSnapshotLocation (commented out for testing)
+# - IRSA service account annotations
+
+# 3. Install Velero
+helm upgrade --install velero vmware-tanzu/velero \
+  --namespace velero \
+  -f values-velero.yaml
+
+# 4. Restart Velero pods to pick up IRSA role
+kubectl delete pod -n velero -l app.kubernetes.io/name=velero
+kubectl logs deploy/velero -n velero
+
+# 5. Check BackupStorageLocation status
+velero backup-location get
+# NOTE: Should show Available. If Unavailable, check IAM role, bucket name, and prefix
+
+---
+
+## 5. Test Backup and Restore Workflow
+
+# 1. Create a test namespace and deploy an app with PVCs (EBS-backed)
+kubectl create namespace velero-pv-test
+# NOTE: Apply Kubernetes manifests for your test app here
+# - Ensure PVC references StorageClass gp2-ebs
+# - Verify pods and volumes are running:
+kubectl get pods -n velero-pv-test
+kubectl get pvc -n velero-pv-test
+kubectl get pv
+
+# 2. Backup the namespace
+velero backup create pv-test-backup --include-namespaces velero-pv-test
+velero backup get
+# NOTE: Wait until backup STATUS is Completed
+
+# 3. Simulate deletion (disaster scenario)
+kubectl delete namespace velero-pv-test
+kubectl get ns
+# NOTE: With reclaimPolicy Delete, underlying EBS volumes will be removed
+# - Without snapshots, restored volumes will be empty
+
+# 4. Restore backup
+velero restore create --from-backup pv-test-backup
+velero restore get
+kubectl get pods -n velero-pv-test
+kubectl get pvc -n velero-pv-test
+kubectl get pv
+# NOTE: Verify pods and volumes are recreated correctly
+# - If volume snapshots are enabled, original data is preserved
+
+---
+
+## 6. Disaster Recovery: Restore to a New Cluster
+
+# 1. Provision a new cluster using the same Terraform code
+# 2. Install Velero using the same bucket/prefix and IAM role
+# 3. Verify available backups:
+velero backup get
+# 4. Restore desired backup:
+velero restore create --from-backup <BACKUP_NAME>
+velero restore get
+kubectl get pods --all-namespaces
+kubectl get pvc --all-namespaces
+
+# NOTE: Ensure IAM, OIDC, StorageClass, and CRDs match the previous cluster
+# - With snapshots enabled, PVs are recreated with original data
+
+---
+
+## 7. Commands Summary
+
+# Namespace & test app
+kubectl create namespace velero-pv-test
+# kubectl apply -f <your-test-app-manifests>.yaml
+
+# Backup
+velero backup create pv-test-backup --include-namespaces velero-pv-test
+velero backup get
+
+# Delete to simulate disaster
+kubectl delete namespace velero-pv-test
+
+# Restore
+velero restore create --from-backup pv-test-backup
+velero restore get
+
+# Velero status & logs
+velero backup-location get
+velero backup describe <backup-name>
+kubectl logs deploy/velero -n velero
+
+---
+
+## 8. Notes & Best Practices
+
+- Use **prefix** in shared S3 buckets to avoid conflicts
+- Use **IRSA** to avoid manual AWS credential management
+- **EBS volumes:** Delete policy removes volumes; snapshots should be enabled in production
+- **Volume snapshots** (commented in `values-velero.yaml`) ensure data consistency during restore
+- Test backup & restore on a non-production namespace before production workloads
+- When restoring to a new cluster, ensure IAM role, StorageClass, and CRDs match the original setup
