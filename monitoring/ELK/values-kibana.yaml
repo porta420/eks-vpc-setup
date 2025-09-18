@@ -1,0 +1,19 @@
+# Kibana - DEMO values (light resources, accessible via LoadBalancer for demo)
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+# Point Kibana at the ES cluster service. Use cluster DNS and scheme.
+# If Elasticsearch uses TLS the chart will handle the connection normally
+elasticsearchHosts: "https://elasticsearch-master.logging.svc.cluster.local:9200"
+
+service:
+  type: LoadBalancer
+  port: 5601
+
