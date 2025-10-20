@@ -1,0 +1,32 @@
+# wordpress/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wordpress-ingress
+  namespace: wordpress
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: "/"
+    alb.ingress.kubernetes.io/healthcheck-port: "80"
+    # Use cert-manager to provision certificate (staging)
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    # Optional: forward client IPs
+    alb.ingress.kubernetes.io/load-balancer-attributes: "access_logs.s3.enabled=false"
+spec:
+  rules:
+  - host: "wp-demo.example.com"   # <-- replace with your DNS name (e.g. wp-demo.example.com)
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: wordpress-svc
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - "wp-demo.example.com"       # same host
+    secretName: wordpress-tls

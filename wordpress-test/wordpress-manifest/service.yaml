@@ -1,0 +1,16 @@
+# wordpress/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-svc
+  namespace: wordpress
+  labels:
+    app: wordpress
+spec:
+  type: ClusterIP
+  selector:
+    app: wordpress
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP

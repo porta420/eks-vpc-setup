@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+  namespace: wordpress
+  labels:
+    app: wordpress
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: wordpress
+  template:
+    metadata:
+      labels:
+        app: wordpress
+    spec:
+      containers:
+      - name: wordpress
+        # stable WordPress image with PHP + Apache
+        image: wordpress:6.2-php8.1-apache
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        env:
+        - name: WORDPRESS_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: wp-db-secret
+              key: db_host
+        - name: WORDPRESS_DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: wp-db-secret
+              key: db_name
+        - name: WORDPRESS_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: wp-db-secret
+              key: db_user
+        - name: WORDPRESS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: wp-db-secret
+              key: db_password
+        # Persistence for /var/www/html/wp-content should be used in prod,
+        # below is demo pattern: emptyDir (ephemeral) to avoid EBS costs.
+        volumeMounts:
+        - name: wp-content
+          mountPath: /var/www/html/wp-content
+        resources:
+          requests:
+            cpu: "100m"       # demo-friendly
+            memory: "128Mi"
+          limits:
+            cpu: "300m"
+            memory: "512Mi"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 5
+      volumes:
+      # Demo: ephemeral storage so no EBS/PVC cost. For production, replace with pvc (see commented PVC below).
+      - name: wp-content
+        emptyDir: {}
