@@ -4,9 +4,9 @@
 
 ## 1. Infrastructure Setup Summary
 
-- **EKS Cluster** provisioned in a custom VPC with public and private subnets.
-- **Bastion host** EC2 instance deployed in the **public subnet** of the same VPC.
-- Cluster endpoint **public access enabled** for external connectivity.
+- EKS Cluster provisioned in a custom VPC with public and private subnets.
+- Bastion host EC2 instance deployed in the **public subnet** of the same VPC.
+- Cluster endpoint **public access enabled** for external connectivity(only during, for production endpoint should be private.
 - IAM roles and policies configured to grant cluster admin access to the bastion host and Terraform user.
 
 ---
@@ -14,7 +14,7 @@
 ## 2. Security Group Configurations
 
 ### Bastion Host Security Group
-- Inbound rules: Allow all traffic from anywhere (`0.0.0.0/0`) for testing.
+- Inbound rules: Allow all traffic from anywhere (`0.0.0.0/0`) for testing, for production restrict to company ip.
 - Outbound rules: Allow all outbound traffic (`0.0.0.0/0`).
 
 ### EKS Cluster Control Plane Security Group
