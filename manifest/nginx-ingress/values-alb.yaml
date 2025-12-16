@@ -1,0 +1,31 @@
+controller:
+  replicaCount: 2
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  admissionWebhooks:
+    enabled: true
+
+  metrics:
+    enabled: true
+
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+
+service:
+  type: ClusterIP          # Use ClusterIP when exposing via ALB
+  port: 80                 # Port ALB will forward to
+  targetPort: 8080         # Change if your app listens on a different port
+
+ingress:
+  enabled: true
+  className: alb
+  host: ""                 # Optional – can map custom domain later
+  path: /

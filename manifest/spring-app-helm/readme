@@ -1,0 +1,13 @@
+# helm charts
+1. make sure ebs ci driver is installed with the appropriate permissions to create ebs volumes in aws.(configuration have been passed in terraform code but double check by runnimg thr commands below ) 
+terraform state show module.eks.aws_eks_addon.aws-ebs-csi-driver
+
+kubectl get sa ebs-csi-controller-sa -n kube-system -o yaml
+
+kubectl get sa ebs-csi-controller-sa -n kube-system -o yaml
+ check annotation
+     annotations:
+     eks.amazonaws.com/role-arn: arn:aws:iam::<account>:role/<cluster>-ebs-csi-driver-role
+
+
+2. create a storage class and set as default before deploying the database because the eks version does not support automatic provisioning of storage classes

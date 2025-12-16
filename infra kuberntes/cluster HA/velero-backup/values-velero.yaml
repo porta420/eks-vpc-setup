@@ -1,0 +1,31 @@
+initContainers:
+  - name: velero-plugin-for-aws
+    image: velero/velero-plugin-for-aws:v1.8.2
+    volumeMounts:
+      - mountPath: /target
+        name: plugins
+
+configuration:
+  provider: aws
+  backupStorageLocation:
+    - name: default
+      bucket: noel-s3-tf-state-bucket     # NOTE: use prefix if sharing bucket
+      prefix: velero-backups               # NOTE: avoids conflict with existing directories
+      config:
+        region: eu-north-1
+  # Uncomment the following for EBS volume snapshot support in production
+  # volumeSnapshotLocation:
+  #   - name: default
+  #     provider: aws
+  #     config:
+  #       region: eu-north-1
+
+credentials:
+  useSecret: false   # Using IRSA
+
+serviceAccount:
+  server:
+    create: true
+    name: velero
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::719136959080:role/project022d-eks-v21-velero-role

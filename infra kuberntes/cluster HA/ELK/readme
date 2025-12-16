@@ -1,0 +1,74 @@
+# EFK Stack (Elasticsearch + Fluent Bit + Kibana) — Demo & Production configs
+
+This repo contains Helm `values.yaml` for a demo-friendly, production-like EFK stack
+targeted at a 3-node EKS cluster. Demo configs keep resource usage low.
+
+## Repo layout (suggested)
+efk-stack/
+ ├─ elasticsearch/
+ │   ├─ values-demo.yaml
+ │   └─ values-production.yaml
+ ├─ kibana/
+ │   ├─ values-demo.yaml
+ │   └─ values-production.yaml
+ ├─ fluent-bit/
+ │   ├─ values-demo.yaml
+ │   └─ values-production.yaml
+ └─ README.md  (this file)
+
+---
+
+## Prerequisites
+- kubectl configured to your EKS cluster
+- Helm v3 installed
+- Namespace `logging` will be used
+- Recommended nodes: 3 x m7i-flex.large (you said your cluster has these)
+
+---
+
+## Quick demo install (copy & paste)
+
+```bash
+# 1) Create namespace
+kubectl create namespace logging
+
+# 2) Add Helm repos
+helm repo add elastic https://helm.elastic.co
+helm repo add fluent https://fluent.github.io/helm-charts
+helm repo update
+
+# 3) Install Elasticsearch (demo values)
+helm upgrade --install elasticsearch elastic/elasticsearch \
+  -n logging -f elasticsearch/values-demo.yaml
+
+# Wait until ES pods are Running and ES cluster is green
+kubectl -n logging get pods -w
+# Check ES health (example)
+kubectl -n logging exec -it statefulset/elasticsearch-master -- curl -s -k https://localhost:9200/_cluster/health?pretty -u elastic:$(kubectl -n logging get secret elasticsearch-master-credentials -o jsonpath="{.data.password}" | base64 --decode)
+
+# 4) Install Kibana (demo values)
+helm upgrade --install kibana elastic/kibana \
+  -n logging -f kibana/values-demo.yaml
+
+# 5) Retrieve ES password and update Fluent Bit values
+ELASTIC_PW=$(kubectl -n logging get secret elasticsearch-master-credentials -o jsonpath="{.data.password}" | base64 --decode)
+# Replace placeholder in fluent-bit/values-demo.yaml or create a local copy:
+sed "s|<ELASTIC_PASSWORD_PLACEHOLDER>|${ELASTIC_PW}|g" fluent-bit/values-demo.yaml > /tmp/fluent-bit-values.yaml
+
+# 6) Install Fluent Bit (demo)
+helm upgrade --install fluent-bit fluent/fluent-bit \
+  -n logging -f /tmp/fluent-bit-values.yaml
+
+# 7) Verify pods & logs
+kubectl -n logging get pods
+kubectl -n logging logs -l app=fluent-bit -f
+
+# 8) Access Kibana (LoadBalancer)
+kubectl -n logging get svc kibana-kibana
+# copy EXTERNAL-IP and open http://<EXTERNAL-IP>:5601
+# login: username = elastic ; password = $ELASTIC_PW
+
+# 9) In Kibana:
+# - Stack Management -> Index Patterns -> Create index pattern: fluent-bit-*
+# - Choose time field @timestamp
+# - Discover -> you should see logs flowing

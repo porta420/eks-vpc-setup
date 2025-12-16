@@ -1,0 +1,30 @@
+# Elasticsearch - DEMO values (for 3 x m7i-flex.large nodes)
+# Single cluster-like setup but light resources so demo runs reliably.
+
+replicas: 3
+minimumMasterNodes: 2
+
+# Keep JVM small for demo; production should tune Xmx/Xms
+esJavaOpts: "-Xms512m -Xmx512m"
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "1"
+    memory: "2Gi"
+
+# Small ephemeral storage for demo; change to persistent in production
+volumeClaimTemplate:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+# storageClassName: gp3   # uncomment in prod if you want gp3
+
+# For demo we keep security enabled by default from the chart.
+# If you prefer insecure demo (NOT RECOMMENDED), uncomment:
+# esConfig:
+#   elasticsearch.yml: |
+#     xpack.security.enabled: false

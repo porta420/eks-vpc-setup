@@ -1,0 +1,64 @@
+# values-production.yaml
+# Production-ready monitoring stack for EKS
+
+grafana:
+  enabled: true
+
+  adminPassword: ${GRAFANA_ADMIN_PASSWORD} # Load from secret manager in real deployments
+
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClassName: gp3
+    ## Retains dashboards on pod restart.
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    hosts:
+      - grafana.example.com
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - grafana.example.com
+    ## Requires AWS Load Balancer Controller + cert-manager.
+
+prometheus:
+  prometheusSpec:
+    retention: 30d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 100Gi
+    ## Persistence for long-term metrics
+
+resources:
+  limits:
+    cpu: 2
+    memory: 8Gi
+  requests:
+    cpu: 1
+    memory: 4Gi
+  ## Stronger resources for production-scale workloads
+
+alertmanager:
+  enabled: true
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    hosts:
+      - alertmanager.example.com
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true
